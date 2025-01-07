@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+
+    * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        }
+    
+    
+        .parent {
+          background-color: white;
+        }
+    
+    
+        .parent {
+            height: 100vh;
+            display: flex;
+            justify-content: center;           
+            align-items: center;
+            width: 100%;
+            background-color: #212121;
+            position: relative;
+        }
+
+    
+        .child-2 {
+            /* max-height: 100vh; */
+            width: 100%;
+            height: calc(100vh - 60px);
+            background-color: #212121;
+        }
+    
+        .chat-body-parent {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* height: 60vh; */
+        }
+
+        .chat-body{
+            position: absolute;
+            bottom: 0;
+            max-height: calc(100vh - 60px);
+        }
+    
+        .chat-body, .message {
+            /* max-height: 100vh; */
+            width: 100%;
+            background-color: #212121;
+            border-radius: 10px;
+            display: flex;      
+            padding: 10px;
+            flex-direction: column;
+        }
+    
+        .message {
+            
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+    
+        .chat-body .message .receive {
+            background-color: white;
+            max-width: 1200px;
+            word-wrap: break-word;
+            word-spacing: normal;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;            
+            align-self: flex-start;
+            position: relative;
+        }
+
+        .chat-body .message .receive::before{
+            content: " ";
+            bottom: 0;
+            left: -10px;
+            position: absolute;
+            height: 10px;
+            width: 20px;
+            background: linear-gradient(300deg,rgb(255, 255, 255) 0%,rgb(255, 255, 255) 50%, transparent 50%, transparent);            
+        }
+
+        .chat-body .message .send{
+            background-color:#303030;
+            max-width: 700px;
+            border-radius: 10px;
+            padding: 10px;
+            word-wrap: break-word;
+            word-spacing: normal;
+            align-self: flex-end;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        
+        .chat-body .message .send::before{
+            content: " ";
+            bottom: 0;
+            right: -10px;
+            position: absolute;
+            height: 10px;
+            width: 20px;
+            background: linear-gradient(-320deg,#303030 0%,#303030 50%, transparent 50%, transparent);            
+        }
+    
+        form {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+        }
+    
+        form textarea {
+            width: 100%;
+            height: 40px;
+            border-radius: 10px;
+            padding: 10px;
+            outline: none;
+            border: 0.3px solid dodgerblue;
+            resize: none;
+            align-content:center;
+        }
+    
+        form textarea::-webkit-scrollbar{
+            display: none;
+        }
+
+        form button {
+            width: 25%;
+            padding: 10px;
+            background-color:#25D366;
+            border-radius: 5px;
+            border: none;
+            color: #000;
+        }
+        .message::-webkit-scrollbar{
+            width: 10px;
+        }
+
+        .message::-webkit-scrollbar-track{
+            background-color: transparent;
+        }
+        
+        .message::-webkit-scrollbar-thumb{
+            background-color:rgb(55, 59, 67);
+        }
+
+        .child-2 h3{
+            color: #25D366;
+        }
+
+        .sender-name{
+            color: black;
+            margin-bottom: 5px;
+            font-size: 0.8em;
+        }
+        
+        .message img{
+            height: 30px;
+            width: 30px;
+            border-radius: 50%;
+            margin-right: 8px;
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+
+            /* 2xl */
+        @media (max-width: 1536px) {}
+
+        /* xl */
+        @media (max-width: 1280px) {}
+
+        /* lg */
+        @media (max-width: 1024px) {}
+
+        /* md */
+        @media (max-width: 768px) {}
+
+        /* sm */
+        @media (max-width: 640px) {
+            .message::-webkit-scrollbar{
+                display: none;
+            }
+    
+        }
+
+        /* xs */
+        @media (max-width: 475px) {
+            .child-2 {
+                /* max-height: 100vh; */
+                width: 300px;
+
+            }
+        }
+
+</style>
+    <div class="parent">
+        <div class="child-2">
+            <center><h3>Online</h3></center>
+            <div class="chat-body-parent">
+                <div class="chat-body" >
+                    <div class="message" id="chatContainer">
+
+                        {% for i in messages %}
+                            {% if i.sender.id != user %}
+                            <span style="display: flex;align-items: end;">
+                                <img src="/media/{{ i.sender.profile_picture }}" alt="">
+                                <div class="receive">
+                                    <p class="sender-name"> {{i.sender.user.first_name | capfirst }}</p>
+                                    <p style="color: #000;"> {{i.message}}</p>                                    
+                                </div>
+                            </span>
+
+                                {% comment %}  {% endcomment %}
+                            {% else %}
+                                <div class="send">
+                                    <p style="color: white;">{{i.message}}</p>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                    </div>
+
+                    <div class="form">
+                        <form action="" id="message-form" method="POST">
+                            {% csrf_token %}
+                            <textarea id="msg" cols="30" name="message" rows="10" placeholder="Enter your message" required></textarea>
+                        </form>    
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+    const form = document.getElementById('message-form');
+    const textArea = document.getElementById('msg');
+
+    function scrollToBottom() {
+        var chatContainer = document.getElementById("chatContainer");
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    const websocketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsEndpoint = `${websocketProtocol}://${window.location.host}/ws/notification/{{room_name}}/`;
+    const socket = new WebSocket(wsEndpoint);
+
+
+        
+    textArea.addEventListener('keydown',(e) => {
+        const message = document.getElementById('msg').value;
+            if(e.key === 'Enter' && !e.shiftKey){
+                if(message === ''){
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                var messageDiv = document.querySelector('.message');
+    
+                    messageDiv.innerHTML += '<div class="send"><p style="color: white;">' + message + '</p></div>';
+                    document.getElementById('msg').value = ""
+           
+                scrollToBottom();
+    
+        }
+    });
+
+
+
+
+
+
+
+    window.onload = function(){
+        scrollToBottom();
+    }
+
+
+
+</script>
+{% endblock content %}
