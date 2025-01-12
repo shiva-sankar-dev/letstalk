@@ -26,7 +26,7 @@ def chatbot(request):
                 Chat.objects.create(userID=user_id, messages=message)
 
                 # Initialize OpenAI client
-                client = OpenAI(api_key="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")
+                client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
                 # Make a chat completion request
                 chat_completion = client.chat.completions.create(
