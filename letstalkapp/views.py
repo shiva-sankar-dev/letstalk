@@ -4,22 +4,61 @@ from django.contrib.auth import authenticate,login,logout
 from .models import *
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.conf import settings
+from openai import OpenAI
+from openai import OpenAIError
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-# Create your views here.
+
 @login_required(login_url='loginpage')
 def chatbot(request):
     user = request.user.id
+    response_text = ""
+
     if request.method == "GET":
         message = request.GET.get("message")
-        if message :
-            user_id = Profile.objects.get(user=user)
-            Chat.objects.create(userID=user_id,messages=message)
-    
+
+        if message:
+                # Log the user's message in the database
+                user_id = Profile.objects.get(user=user)
+                Chat.objects.create(userID=user_id, messages=message)
+
+                # Initialize OpenAI client
+                client = OpenAI(api_key="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")
+
+                # Make a chat completion request
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a helpful assistant.",
+                        },
+                        {
+                            "role": "user",
+                            "content": message,
+                        },
+                    ],
+                    model="gpt-4",
+                )
+
+                # Extract the AI's response
+                response_text = chat_completion["choices"][0]["message"]["content"]
+                print(response_text, "______________________________")
+
+
+
+    # Fetch chat history
     get_chat = Chat.objects.filter(userID__user=user)
+
+    # Pass data to the template
     context = {
-        "get_chat":get_chat,
-    }        
-    return render(request,"chatbot.html",context)
+        "get_chat": get_chat,
+        "response_text": response_text,
+    }
+    return render(request, "chatbot.html", context)
+
 
 def base(request):
     return render(request,"base.html")
