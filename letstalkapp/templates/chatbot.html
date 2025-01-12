@@ -200,12 +200,12 @@
 </style>
     <div class="parent">
         <div class="child-2">
-            <center><h3>Online</h3></center>
+            {% comment %} <center><h3>Online</h3></center> {% endcomment %}
             <div class="chat-body-parent">
                 <div class="chat-body" >
                     <div class="message" id="chatContainer">
 
-                        {% for i in messages %}
+                        {% comment %} {% for data in get_chat %}
                             {% if i.sender.id != user %}
                             <span style="display: flex;align-items: end;">
                                 <img src="/media/{{ i.sender.profile_picture }}" alt="">
@@ -215,17 +215,23 @@
                                 </div>
                             </span>
 
-                                {% comment %}  {% endcomment %}
                             {% else %}
                                 <div class="send">
-                                    <p style="color: white;">{{i.message}}</p>
+                                    <p style="color: white;">{{ data.messages }}</p>
                                 </div>
                             {% endif %}
+                        {% endfor %} {% endcomment %}
+
+                        
+                        {% for data in get_chat %}
+                                <div class="send">
+                                    <p style="color: white;">{{ data.messages }}</p>
+                                </div>
                         {% endfor %}
 
                     </div>
 
-                    <div class="form">
+                    <div class="form"> 
                         <form action="" id="message-form" method="POST">
                             {% csrf_token %}
                             <textarea id="msg" cols="30" name="message" rows="10" placeholder="Enter your message" required></textarea>
@@ -264,9 +270,18 @@
                     document.getElementById('msg').value = ""
            
                 scrollToBottom();
+
+                $.ajax({
+                    url:"{% url 'chatbot' %}",
+                    type:"GET",
+                    data:{
+                        "message":message,
+                    },
+                })
     
         }
     });
+
 
 
 
