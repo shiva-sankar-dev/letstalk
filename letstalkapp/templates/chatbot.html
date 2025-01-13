@@ -224,11 +224,20 @@
 
                         
                         {% for data in get_chat %}
-                                <div class="send">
-                                    <p style="color: white;">{{ data.messages }}</p>
-                                </div>
+                            <div class="send">
+                                <p onclick="speakText(this)" style="color: white;">{{ data.messages }}</p>
+                            </div>
                         {% endfor %}
-
+                        
+                        <script>
+                            function speakText(element) {
+                                const text = element.textContent;
+                                const speech = new SpeechSynthesisUtterance(text);
+                                speech.lang = 'en-US'; 
+                                window.speechSynthesis.speak(speech);
+                            }
+                        </script>
+                        
                     </div>
 
                     <div class="form"> 
