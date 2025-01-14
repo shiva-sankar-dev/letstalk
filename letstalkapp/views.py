@@ -10,25 +10,26 @@ from openai import OpenAIError
 from dotenv import load_dotenv
 import os
 load_dotenv()
-
+from elevenlabs.client import ElevenLabs
+from elevenlabs import play, save, stream, Voice, VoiceSettings
+from playsound import playsound
+import base64
 
 @login_required(login_url='loginpage')
 def chatbot(request):
     user = request.user.id
     response_text = ""
+    audio_data = ""
 
     if request.method == "GET":
         message = request.GET.get("message")
 
         if message:
-                # Log the user's message in the database
-                user_id = Profile.objects.get(user=user)
-                Chat.objects.create(userID=user_id, messages=message)
+            user_id = Profile.objects.get(user=user)
+            Chat.objects.create(userID=user_id, messages=message,checkuser=0)
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-                # Initialize OpenAI client
-                client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-                # Make a chat completion request
+            try:
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
@@ -40,22 +41,37 @@ def chatbot(request):
                             "content": message,
                         },
                     ],
-                    model="gpt-4",
+                    model="gpt-4o",
                 )
+                
+                
 
-                # Extract the AI's response
-                response_text = chat_completion["choices"][0]["message"]["content"]
-                print(response_text, "______________________________")
+                response_text = chat_completion.choices[0].message.content
+                print(response_text,"_________")
+                user_id = Profile.objects.get(user=user)
+                Chat.objects.create(userID=user_id, messages=response_text,checkuser=1)
+                
+                
+                elevenlabs_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+                audio = elevenlabs_client.generate(
+                   text=response_text,
+                   voice="Alice"
+                )
+                print(audio)
+                audio_bytes = b"".join(audio)
+                audio_data = base64.b64encode(audio_bytes).decode('utf-8')
+                if response_text:
+                    return JsonResponse({"converted":True,"audio_data":audio_data,"replay":response_text})
+            except Exception as e:
+                response_text = "An error occurred while generating the response."
+                print(f"Error: {e}")
 
-
-
-    # Fetch chat history
     get_chat = Chat.objects.filter(userID__user=user)
 
-    # Pass data to the template
     context = {
         "get_chat": get_chat,
-        "response_text": response_text,
+        "response_text": response_text, 
+        "audio_data": audio_data, 
     }
     return render(request, "chatbot.html", context)
 

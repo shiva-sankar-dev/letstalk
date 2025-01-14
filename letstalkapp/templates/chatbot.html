@@ -224,19 +224,34 @@
 
                         
                         {% for data in get_chat %}
-                            <div class="send">
-                                <p onclick="speakText(this)" style="color: white;">{{ data.messages }}</p>
-                            </div>
+                        {% if data.checkuser == 1 %}
+                                <div class="receive">
+                                    <p onclick="speakText(this)" style="color: #000;"> {{ data.messages }}</p>                                    
+                                </div>
+
+                            {% else %}
+                                <div class="send">
+                                    <p onclick="speakText(this)" style="color: white;">{{ data.messages }}</p>
+                                </div>
+                            {% endif %}
                         {% endfor %}
+
                         
-                        <script>
+                        {% comment %} {% if audio_data %}
+                            <audio id="audioPlayer" controls autoplay>
+                                <source src="data:audio/mp3;base64,{{ audio_data }}" type="audio/mpeg">
+                                Your browser does not support the audio tag.
+                            </audio>
+                        {% endif %} {% endcomment %}
+                        
+                        {% comment %} <script>
                             function speakText(element) {
                                 const text = element.textContent;
                                 const speech = new SpeechSynthesisUtterance(text);
                                 speech.lang = 'en-US'; 
                                 window.speechSynthesis.speak(speech);
                             }
-                        </script>
+                        </script> {% endcomment %}
                         
                     </div>
 
@@ -259,9 +274,6 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    const websocketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsEndpoint = `${websocketProtocol}://${window.location.host}/ws/notification/{{room_name}}/`;
-    const socket = new WebSocket(wsEndpoint);
 
 
         
@@ -285,6 +297,17 @@
                     type:"GET",
                     data:{
                         "message":message,
+                    },
+                    success: function (response) {
+                        if (response.converted) {
+                            const audioPlayer = new Audio(`data:audio/mp3;base64,${response.audio_data}`);
+                            
+                            audioPlayer.play()
+                                .catch((error) => console.error("Error playing audio:", error));
+                        }
+                        if(response.converted){
+                            messageDiv.innerHTML += `<div class="receive"><p style="color: #000;"> ${response.replay} </p></div>`;
+                        }
                     },
                 })
     

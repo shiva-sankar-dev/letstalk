@@ -14,6 +14,7 @@ class Profile(models.Model):
 class Chat(models.Model):
     userID = models.ForeignKey(Profile,on_delete=models.CASCADE)
     messages = models.TextField(null=True)
+    checkuser = models.IntegerField(null=True)
 
     def __str__(self):
         return self.userID.user.username
