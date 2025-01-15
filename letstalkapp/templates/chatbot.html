@@ -226,15 +226,21 @@
                         {% for data in get_chat %}
                         {% if data.checkuser == 1 %}
                                 <div class="receive">
-                                    <p onclick="speakText(this)" style="color: #000;"> {{ data.messages }}</p>                                    
+                                    <p id="messageText" style="color: #000;"> {{ data.messages }}</p> 
+                                    <button onclick="sendMessageToServer('{{ data.messages }}')" >click</button>                                   
                                 </div>
 
                             {% else %}
                                 <div class="send">
-                                    <p onclick="speakText(this)" style="color: white;">{{ data.messages }}</p>
+                                    <p style="color: white;">{{ data.messages }}</p>
                                 </div>
                             {% endif %}
                         {% endfor %}
+                        <script>
+                            function speakText(){
+                                const toSend = document.getElementById("messageText")
+                            }
+                        </script>
 
                         
                         {% comment %} {% if audio_data %}
@@ -244,15 +250,14 @@
                             </audio>
                         {% endif %} {% endcomment %}
                         
-                        {% comment %} <script>
+                        <script>
                             function speakText(element) {
                                 const text = element.textContent;
                                 const speech = new SpeechSynthesisUtterance(text);
                                 speech.lang = 'en-US'; 
                                 window.speechSynthesis.speak(speech);
                             }
-                        </script> {% endcomment %}
-                        
+                        </script> 
                     </div>
 
                     <div class="form"> 
@@ -277,7 +282,7 @@
 
 
         
-    textArea.addEventListener('keydown',(e) => {
+    textArea.addEventListener('keydown',async (e) => {
         const message = document.getElementById('msg').value;
             if(e.key === 'Enter' && !e.shiftKey){
                 if(message === ''){
@@ -292,33 +297,96 @@
            
                 scrollToBottom();
 
-                $.ajax({
-                    url:"{% url 'chatbot' %}",
-                    type:"GET",
-                    data:{
-                        "message":message,
-                    },
-                    success: function (response) {
-                        if (response.converted) {
-                            const audioPlayer = new Audio(`data:audio/mp3;base64,${response.audio_data}`);
-                            
-                            audioPlayer.play()
-                                .catch((error) => console.error("Error playing audio:", error));
-                        }
-                        if(response.converted){
-                            messageDiv.innerHTML += `<div class="receive"><p style="color: #000;"> ${response.replay} </p></div>`;
-                        }
-                    },
-                })
+                
+
+                try {
+                    const response = await fetch("/answer/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ message: message }),
+                    });
+    
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder("utf-8");
+                    let output = "";
+    
+                    let cumulativeMessage = ""; // Initialize a variable to store the full message
+
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'receive'; // Add the 'receive' class (or 'send' based on logic)
+                    
+                    // Create a paragraph element for the message text
+                    const messageText = document.createElement('p');
+                    messageText.style.color = '#000'; // Set the text color
+                    
+                    // Append the paragraph to the message div
+                    messageDiv.appendChild(messageText);
+                    // Create a button dynamically
+                    const button = document.createElement('button');
+                    button.textContent = "click";
+                    button.className = "send-btn";
+                    button.style.marginLeft = "10px";
+        
+                    // Append the button to the message div
+                    messageDiv.appendChild(button);
+                    
+                    // Append the message div to the chat container only once
+                    document.getElementById('chatContainer').appendChild(messageDiv);
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                    
+                        const newChunk = decoder.decode(value); // Decode the new chunk
+                        cumulativeMessage += newChunk; // Append the new chunk to the cumulative message
+                    
+                        // Update the text content of the existing paragraph element
+                        messageText.textContent = cumulativeMessage;
+
+                        button.setAttribute('data-message', cumulativeMessage);
+                    
+                        // Scroll to the bottom to show the updated message
+                        scrollToBottom();
+                    }
+                    
+
+                    button.addEventListener("click", function () {
+                        sendMessageToServer(cumulativeMessage);
+                    });
+                    
+
+                } catch (error) {
+                    console.error("Error:", error);
+                }
     
         }
     });
 
+    function sendMessageToServer(botMessage) {
+        console.log(botMessage,"___________+-=-=-=-=-=-")
+        fetch("/get_audio_data/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ botMessage: botMessage }), // Send the message as JSON
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                console.log("Message sent successfully:", data);
 
-
-
-
-
+                if (data.audio_data) {
+                    const audio = new Audio(`data:audio/wav;base64,${data.audio_data}`);
+                    audio.play();
+                } else {
+                    console.error("No audio data received.");
+                }
+            })
+            .catch((error) => {
+                console.error("Error sending message:", error);
+            });
+    }
+    
 
 
     window.onload = function(){

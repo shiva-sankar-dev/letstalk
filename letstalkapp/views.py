@@ -3,79 +3,106 @@ from django.contrib import messages
 from django.contrib.auth import authenticate,login,logout
 from .models import *
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse,StreamingHttpResponse
 from django.conf import settings
 from openai import OpenAI
 from openai import OpenAIError
 from dotenv import load_dotenv
 import os
+import json
 load_dotenv()
 from elevenlabs.client import ElevenLabs
 from elevenlabs import play, save, stream, Voice, VoiceSettings
 from playsound import playsound
 import base64
 
+
 @login_required(login_url='loginpage')
 def chatbot(request):
     user = request.user.id
-    response_text = ""
-    audio_data = ""
 
-    if request.method == "GET":
-        message = request.GET.get("message")
-
-        if message:
-            user_id = Profile.objects.get(user=user)
-            Chat.objects.create(userID=user_id, messages=message,checkuser=0)
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-            try:
-                chat_completion = client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You are a helpful assistant.",
-                        },
-                        {
-                            "role": "user",
-                            "content": message,
-                        },
-                    ],
-                    model="gpt-4o",
-                )
                 
                 
 
-                response_text = chat_completion.choices[0].message.content
-                print(response_text,"_________")
-                user_id = Profile.objects.get(user=user)
-                Chat.objects.create(userID=user_id, messages=response_text,checkuser=1)
+
                 
                 
-                elevenlabs_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
-                audio = elevenlabs_client.generate(
-                   text=response_text,
-                   voice="Alice"
-                )
-                print(audio)
-                audio_bytes = b"".join(audio)
-                audio_data = base64.b64encode(audio_bytes).decode('utf-8')
-                if response_text:
-                    return JsonResponse({"converted":True,"audio_data":audio_data,"replay":response_text})
-            except Exception as e:
-                response_text = "An error occurred while generating the response."
-                print(f"Error: {e}")
+                # elevenlabs_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+                # audio = elevenlabs_client.generate(
+                #    text=response_text,
+                #    voice="Alice"
+                # )
+                # print(audio)
+                # audio_bytes = b"".join(audio)
+                # audio_data = base64.b64encode(audio_bytes).decode('utf-8')
+
 
     get_chat = Chat.objects.filter(userID__user=user)
 
     context = {
         "get_chat": get_chat,
-        "response_text": response_text, 
-        "audio_data": audio_data, 
     }
     return render(request, "chatbot.html", context)
 
+def generate_response(question):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant.",
+            },
+            {
+                "role": "user",
+                "content": question,
+            },
+        ],
+        model="gpt-4o",
+        stream=True,
+    )
+    for chunk in chat_completion:
+        if chunk.choices[0].delta.content is not None:
+            yield(chunk.choices[0].delta.content)
+    
+@csrf_exempt                
+def answer(request):
+    user = request.user.id
+    response_text = ""
+    audio_data = ""
+    
+    data = json.loads(request.body)
+    message = data.get('message', '')
+    
+    if message:
+        user_id = Profile.objects.get(user=user)
+        Chat.objects.create(userID=user_id, messages=message,checkuser=0)
+           
+    for chunk in generate_response(message):
+        response_text += chunk
+    user_id = Profile.objects.get(user=user)
+    Chat.objects.create(userID=user_id, messages=response_text,checkuser=1)
+    response = StreamingHttpResponse(generate_response(message),status = 200,content_type = "text/plain")
 
+    return response
+
+@csrf_exempt
+def get_audio_data(request):
+    data = json.loads(request.body)
+    botMessage = data.get('botMessage', '')
+    print(f"Received message: {botMessage}")
+    
+    elevenlabs_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+    audio = elevenlabs_client.generate(
+       text=botMessage,
+       voice="Alice"
+    )
+    print(audio)
+    audio_bytes = b"".join(audio)
+    audio_data = base64.b64encode(audio_bytes).decode('utf-8')
+    
+    return JsonResponse({"audio_data": audio_data})
+    
 def base(request):
     return render(request,"base.html")
 
