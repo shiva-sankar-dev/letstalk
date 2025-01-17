@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% load markdownify %}
 
 <style>
 
@@ -8,6 +9,7 @@
         padding: 0;
         margin: 0;
         box-sizing: border-box;
+        font-family: 'Arial', sans-serif !important; 
         }
     
     
@@ -85,6 +87,44 @@
             background: linear-gradient(300deg,rgb(255, 255, 255) 0%,rgb(255, 255, 255) 50%, transparent 50%, transparent);            
         }
 
+        .message-bubble {
+            background-color: #f1f1f1; 
+            color: #000;
+            border-radius: 10px;
+            padding: 10px 10px;
+            word-wrap: break-word; 
+            white-space: normal;
+           
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
+            font-family: 'Arial', sans-serif !important; 
+            font-size: 16px;
+        }
+
+        .message-container {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word; 
+            max-width: 100%; 
+            line-height: 1.1; 
+
+        }
+
+        #stopBtn{
+            display: none;
+        }
+        
+        .send-btn {
+            margin-top: 0px;
+            color: #fff; 
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em !important;
+        }
+        
+        .send-btn:hover {
+            color: #ededed
+        }
+
         .chat-body .message .send{
             background-color:#303030;
             max-width: 700px;
@@ -149,9 +189,7 @@
             background-color:rgb(55, 59, 67);
         }
 
-        .child-2 h3{
-            color: #25D366;
-        }
+
 
         .sender-name{
             color: black;
@@ -197,10 +235,17 @@
             }
         }
 
+        .message-container ol,
+        .message-container ul {
+            padding-left: 1.5rem; /* Ensure lists stay indented */
+            margin: 0;
+        }
+        
+        
+
 </style>
     <div class="parent">
         <div class="child-2">
-            {% comment %} <center><h3>Online</h3></center> {% endcomment %}
             <div class="chat-body-parent">
                 <div class="chat-body" >
                     <div class="message" id="chatContainer">
@@ -221,14 +266,28 @@
                                 </div>
                             {% endif %}
                         {% endfor %} {% endcomment %}
+                        
 
                         
                         {% for data in get_chat %}
                         {% if data.checkuser == 1 %}
-                                <div class="receive">
-                                    <p id="messageText" style="color: #000;"> {{ data.messages }}</p> 
-                                    <button onclick="sendMessageToServer('{{ data.messages }}')" >click</button>                                   
-                                </div>
+                        <div class="receive">
+                            <div id="messageText" class="message-bubble">
+                                <pre class="message-container">{{ data.messages }}</pre>
+
+                            </div>
+                            
+                        </div>
+                        <div class="waiting">
+                            <ion-icon name="volume-high-outline" class="send-btn playBtn" onclick="playAudio(this, '{{ data.messages|escapejs }}')"></ion-icon>
+                            {% comment %} <button class="send-btn playBtn" onclick="playAudio(this, '{{ data.messages|escapejs }}')">Play</button> {% endcomment %}
+
+                            <ion-icon name="ellipse-outline" class="loading-icon send-btn playBtn" style="display: none;"></ion-icon>
+                            <ion-icon name="stop-circle-outline" class="send-btn stopBtn" style="display: none;" onclick="stopAudio(this)"></ion-icon>
+                            {% comment %} <button class="send-btn stopBtn" style="display: none;" onclick="stopAudio(this)">Stop</button> {% endcomment %}
+
+                        </div>
+                        
 
                             {% else %}
                                 <div class="send">
@@ -236,11 +295,39 @@
                                 </div>
                             {% endif %}
                         {% endfor %}
-                        <script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const messageContainers = document.querySelectorAll(".message-container");
+    
+        messageContainers.forEach((container) => {
+            if (container.dataset.rendered === "true") return;
+    
+            let rawMessage = container.textContent.trim();
+            rawMessage = rawMessage.replace(/(^|\s)(\d+)\.(?!\s)/g, '$1$2\\.');
+    
+            // Convert Markdown to HTML
+            const renderedHtml = marked.parse(rawMessage, {
+                breaks: true,
+                gfm: true,
+            });
+    
+            // Wrap parsed HTML in a container
+            container.innerHTML = `<div>${renderedHtml}</div>`;
+            container.dataset.rendered = "true";
+        });
+    });
+    
+    
+    
+</script>
+
+
+                        {% comment %} <script>
                             function speakText(){
                                 const toSend = document.getElementById("messageText")
                             }
-                        </script>
+                        </script> {% endcomment %}
 
                         
                         {% comment %} {% if audio_data %}
@@ -250,14 +337,14 @@
                             </audio>
                         {% endif %} {% endcomment %}
                         
-                        <script>
+                        {% comment %} <script>
                             function speakText(element) {
                                 const text = element.textContent;
                                 const speech = new SpeechSynthesisUtterance(text);
                                 speech.lang = 'en-US'; 
                                 window.speechSynthesis.speak(speech);
                             }
-                        </script> 
+                        </script>  {% endcomment %}
                     </div>
 
                     <div class="form"> 
@@ -305,65 +392,116 @@
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ message: message }),
                     });
-    
+                
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder("utf-8");
-                    let output = "";
-    
                     let cumulativeMessage = ""; // Initialize a variable to store the full message
-
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'receive'; // Add the 'receive' class (or 'send' based on logic)
-                    
-                    // Create a paragraph element for the message text
-                    const messageText = document.createElement('p');
-                    messageText.style.color = '#000'; // Set the text color
-                    
-                    // Append the paragraph to the message div
-                    messageDiv.appendChild(messageText);
-                    // Create a button dynamically
-                    const button = document.createElement('button');
-                    button.textContent = "click";
-                    button.className = "send-btn";
-                    button.style.marginLeft = "10px";
-        
-                    // Append the button to the message div
-                    messageDiv.appendChild(button);
-                    
-                    // Append the message div to the chat container only once
-                    document.getElementById('chatContainer').appendChild(messageDiv);
-                    
+                
+                    // Create the container div dynamically
+                    const messageDiv = document.createElement("div");
+                    messageDiv.className = "receive"; // Add the 'receive' class
+                
+                    // Create the message bubble
+                    const messageTextDiv = document.createElement("div");
+                    messageTextDiv.id = "messageText";
+                    messageTextDiv.className = "message-bubble";
+                
+                    // Create a pre element for the message text
+                    const messageContainer = document.createElement("pre");
+                    messageContainer.className = "message-container";
+                    messageTextDiv.appendChild(messageContainer);
+                
+                    // Append the message bubble to the container div
+                    messageDiv.appendChild(messageTextDiv);
+                
+                    // Append the entire message container (without icons yet) to the chat container
+                    document.getElementById("chatContainer").appendChild(messageDiv);
+                
+                    // Create a separate div for the icons (outside the message bubble)
+                    const iconDiv = document.createElement("div");
+                    iconDiv.className = "waiting"; // Add the 'waiting' class for styling
+                
+                    // Create the play button
+                    const playIcon = document.createElement("ion-icon");
+                    playIcon.setAttribute("name", "volume-high-outline");
+                    playIcon.className = "send-btn playBtn";
+                    playIcon.addEventListener("click", function () {
+                        playAudio(playIcon, cumulativeMessage);
+                    });
+                    iconDiv.appendChild(playIcon);
+                
+                    // Create the loading icon
+                    const loadingIcon = document.createElement("ion-icon");
+                    loadingIcon.setAttribute("name", "ellipse-outline");
+                    loadingIcon.className = "loading-icon send-btn playBtn";
+                    loadingIcon.style.display = "none"; // Hidden by default
+                    iconDiv.appendChild(loadingIcon);
+                
+                    // Create the stop button
+                    const stopIcon = document.createElement("ion-icon");
+                    stopIcon.setAttribute("name", "stop-circle-outline");
+                    stopIcon.className = "send-btn stopBtn";
+                    stopIcon.style.display = "none"; // Hidden by default
+                    stopIcon.addEventListener("click", function () {
+                        stopAudio(stopIcon);
+                    });
+                    iconDiv.appendChild(stopIcon);
+                
+                    // Append the icon div after the message div
+                    document.getElementById("chatContainer").appendChild(iconDiv);
+                
+                    // Read the streamed data and update the UI
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                    
+                
                         const newChunk = decoder.decode(value); // Decode the new chunk
                         cumulativeMessage += newChunk; // Append the new chunk to the cumulative message
-                    
-                        // Update the text content of the existing paragraph element
-                        messageText.textContent = cumulativeMessage;
-
-                        button.setAttribute('data-message', cumulativeMessage);
-                    
+                
+                        // Render Markdown dynamically and sanitize
+                        const sanitizedMarkdown = marked.parse(cumulativeMessage);
+                
+                        // Update the message content dynamically with parsed Markdown
+                        messageContainer.innerHTML = sanitizedMarkdown;
+                
+                        // Update the Play button with the current message
+                        playIcon.setAttribute("data-message", cumulativeMessage);
+                
                         // Scroll to the bottom to show the updated message
                         scrollToBottom();
                     }
-                    
-
-                    button.addEventListener("click", function () {
-                        sendMessageToServer(cumulativeMessage);
-                    });
-                    
-
                 } catch (error) {
                     console.error("Error:", error);
                 }
+                
+                
     
         }
     });
 
-    function sendMessageToServer(botMessage) {
-        console.log(botMessage,"___________+-=-=-=-=-=-")
+    let currentAudio = null; // Global variable to hold the current Audio instance
+
+    function playAudio(button, botMessage) {
+        console.log(botMessage, "Playing audio for message");
+    
+        const parentContainer = button.closest(".waiting"); // Get the parent container
+        const loadingIcon = parentContainer.querySelector(".loading-icon"); // Get the loading icon
+        const stopButton = button.nextElementSibling.nextElementSibling; // Get the stop button
+    
+        // Show the loading icon and hide the play button
+        loadingIcon.style.display = "inline-block";
+        button.style.display = "none";
+    
+        // Stop any currently playing audio
+        if (currentAudio) {
+            currentAudio.audio.pause();
+            currentAudio.buttonPlay.style.display = "block";
+            currentAudio.buttonStop.style.display = "none";
+            currentAudio.loadingIcon.style.display = "none"; // Hide loading icon for the previous audio
+            currentAudio = null;
+        }
+    
+        // Fetch the audio data for the current message
         fetch("/get_audio_data/", {
             method: "POST",
             headers: {
@@ -373,19 +511,64 @@
         })
             .then((response) => response.json())
             .then((data) => {
-                console.log("Message sent successfully:", data);
-
                 if (data.audio_data) {
+                    // Create a new Audio instance and play it
                     const audio = new Audio(`data:audio/wav;base64,${data.audio_data}`);
+                    currentAudio = {
+                        audio,
+                        buttonPlay: button,
+                        buttonStop: stopButton,
+                        loadingIcon: loadingIcon,
+                    };
+    
                     audio.play();
+    
+                    // Update button states after the audio starts playing
+                    audio.addEventListener("playing", () => {
+                        loadingIcon.style.display = "none"; // Hide loading icon
+                        stopButton.style.display = "block"; // Show stop button
+                    });
+    
+                    // When audio ends, reset buttons
+                    audio.addEventListener("ended", () => {
+                        button.style.display = "block"; // Show play button
+                        stopButton.style.display = "none"; // Hide stop button
+                        currentAudio = null;
+                    });
                 } else {
                     console.error("No audio data received.");
+                    loadingIcon.style.display = "none"; // Hide loading icon
+                    button.style.display = "block"; // Show play button
                 }
             })
             .catch((error) => {
-                console.error("Error sending message:", error);
+                console.error("Error fetching audio:", error);
+                loadingIcon.style.display = "none"; // Hide loading icon
+                button.style.display = "block"; // Show play button
             });
     }
+    
+    function stopAudio(button) {
+        const parentContainer = button.closest(".waiting");
+        const playButton = parentContainer.querySelector(".playBtn");
+        const loadingIcon = parentContainer.querySelector(".loading-icon");
+    
+        if (currentAudio && currentAudio.buttonStop === button) {
+            // Stop the audio and reset the playback position
+            currentAudio.audio.pause();
+            currentAudio.audio.currentTime = 0;
+    
+            // Reset button states
+            playButton.style.display = "block"; // Show play button
+            button.style.display = "none"; // Hide stop button
+            loadingIcon.style.display = "none"; // Hide loading icon
+    
+            currentAudio = null;
+        } else {
+            console.log("No audio is currently playing.");
+        }
+    }
+    
     
 
 

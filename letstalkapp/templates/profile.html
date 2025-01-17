@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %} 
+{% block content %}
+
+<style>
+    :root{
+        --shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -1px rgba(0,0,0,0.06);
+    }
+    * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+
+      .update {
+        font-family: sans-serif;
+        display: flex;
+        align-items: center;
+        background-color: rgba(232,233,239,1);
+        justify-content: center;
+        min-height: calc(100vh - 60px);
+      }
+      
+
+      .form {
+        background: white;
+        padding: 20px 15px;
+        min-height: 250px;
+        min-width: 350px;
+        box-shadow: var(--shadow);
+        border-radius: 15px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      input {
+        display: block;
+        outline: none;
+        padding: 15px 10px;
+        margin: 30px;
+        border: solid 1px dodgerblue;
+        background: none;
+        color: black;
+        width: 300px;
+        transition: border-color 1s;
+      }
+      
+      input:focus{
+        border-color: rgba(75, 95, 172, 1);
+        outline: none;
+    }
+      
+      .form button {
+        padding: 10px;
+        color: white;
+        background-color:rgba(75, 95, 172, 1);
+        border: none;
+        width: 300px;
+        transition: 0.2s;
+        cursor: pointer;
+      }
+      .form button:hover {
+        background-color: rgb(108, 127, 201);
+      }
+      
+      .log-reg{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      #update_profile_picture{
+        display: none;
+      }
+      .show-profile{
+        outline: none;
+        padding: 15px 10px;
+        margin: 30px;
+        border: solid 1px dodgerblue;
+        color: black;
+        width: 300px;
+        height: 250px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+      }
+      #uploadedImage{
+        outline: none;
+        padding: 4px 4px;
+        margin: 30px;
+        border: solid 1px dodgerblue;
+        width: 300px;
+        height: 250px;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        object-fit: cover;
+      }
+
+      .update-form p{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.6em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 425px) {
+        .form {
+          min-height: 200px;
+          min-width: 300px;
+        }
+        .form button {
+          width: 200px;
+        }
+        input{
+          padding: 15px 10px;
+          margin: 6px;
+          border: solid 1px dodgerblue;
+          background: none;
+          color: black;
+          width: 260px;
+          transition: border-color 1s;
+        }
+        .show-profile ,#uploadedImage{
+            padding: 15px 10px;
+            margin: 6px;
+            color: black;
+            width: 260px;
+            height: 190px;
+          }
+        .form button {
+          width: 260px;
+          margin: 6px;
+        }
+      }
+      
+</style>
+
+<div class="update">
+  <div class="form">
+    <form action="{% url 'profile' %}" method="post"  enctype="multipart/form-data">
+      {% csrf_token %}
+        <div class="update-form">
+            <p>update profile</p>
+          <input type="text" value="{{ user_details.user.first_name | capfirst }}" pattern="^[a-zA-Z0-9]{3,10}$" title="Username must be 3-20 characters long and can only contain letters, numbers." name="update_username" id="update_username" placeholder="Username" required />
+          <input type="email" value="{{ user_details.user.email }}" name="update_email" id="update_email" placeholder="Email" required />
+          <label for="update_profile_picture" class="show-profile" id="showProfile">Profile Image</label>
+          <img src="" alt="" id="uploadedImage">
+          <input type="file" accept="image/*" name="update_profile_picture" id="update_profile_picture" placeholder="Profile Picture" />
+          <div class="log-reg">  
+              <button type="submit" name="registration_btn" onclick="registrationBtn()">Update</button>
+          </div>
+        </div>
+    </form>
+  </div>
+</div>
+
+
+<script>
+    const uploadedImage = document.getElementById('uploadedImage');
+    const updateProfilePicture = document.getElementById('update_profile_picture');
+    const showProfile = document.getElementById('showProfile');
+
+    updateProfilePicture.onchange = () =>{
+        uploadedImage.style.display = 'flex';
+        showProfile.style.display = 'none';
+
+        uploadedImage.src = URL.createObjectURL(updateProfilePicture.files[0])
+    }
+
+    uploadedImage.onclick =() =>{
+        updateProfilePicture.click()
+    }
+
+</script>
+
+
+
+{% endblock content %}

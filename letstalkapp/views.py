@@ -16,6 +16,7 @@ from elevenlabs.client import ElevenLabs
 from elevenlabs import play, save, stream, Voice, VoiceSettings
 from playsound import playsound
 import base64
+from markdown import markdown
 
 
 @login_required(login_url='loginpage')
@@ -69,7 +70,6 @@ def generate_response(question):
 def answer(request):
     user = request.user.id
     response_text = ""
-    audio_data = ""
     
     data = json.loads(request.body)
     message = data.get('message', '')
@@ -80,7 +80,10 @@ def answer(request):
            
     for chunk in generate_response(message):
         response_text += chunk
+        
     user_id = Profile.objects.get(user=user)
+    print(response_text,"+++++++++")
+    
     Chat.objects.create(userID=user_id, messages=response_text,checkuser=1)
     response = StreamingHttpResponse(generate_response(message),status = 200,content_type = "text/plain")
 
@@ -140,3 +143,35 @@ def register(request):
 def logout_page(request):
     logout(request)
     return render(request,"login.html")
+
+
+login_required(login_url="loginpage")
+def profile(request):
+    if request.user.is_authenticated:   
+        
+        user_details = Profile.objects.get(user = request.user)
+        if request.method == "POST":
+            
+            update_username = request.POST["update_username"]
+            update_email = request.POST["update_email"]
+            update_profile_picture = request.FILES.get("update_profile_picture")
+
+            user_details.user.first_name = update_username
+            user_details.user.email = update_email
+            user_details.user.username = update_email
+            user_details.user.save()
+            if update_profile_picture:
+                user_details.profile_picture = update_profile_picture
+                user_details.save()
+            
+            
+            return redirect("profile")
+        context = {
+            "user_details":user_details,
+        }
+        
+    else:
+        return redirect("loginpage")
+            
+
+    return render(request,"profile.html",context)
