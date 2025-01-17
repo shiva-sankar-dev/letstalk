@@ -126,7 +126,7 @@ def register(request):
     if request.method == 'POST':
         username = request.POST["reg_username"]
         email = request.POST.get("reg_email")
-        profile_picture = request.FILES.get("reg_profile_picture")
+        # profile_picture = request.FILES.get("reg_profile_picture")
         password = request.POST.get("reg_password")
         if User.objects.filter(username = email).exists():
             return JsonResponse({"exists":True,"message":"Email already exist"})
@@ -135,7 +135,7 @@ def register(request):
             user_reg.set_password(password)
             user_reg.first_name = username
             user_reg.save()
-            Profile.objects.create(user=user_reg,profile_picture=profile_picture)
+            Profile.objects.create(user=user_reg)
             return JsonResponse({"added":True})
     
     return render(request,"login.html")

@@ -1,11 +1,12 @@
 from .models import *
 
 def userprofile(request):
-    user_id = ""
+    dp= ""
     if request.user.is_authenticated:
-        user_id = Profile.objects.get(user=request.user.id)
+        user_profile  = Profile.objects.get(user=request.user)
+        dp = user_profile .profile_picture
         
     context ={
-        "user_id":user_id,
+        "dp": dp,
     }
     return context

@@ -19,18 +19,19 @@
             padding: 0;
             margin: 0;
             box-sizing: border-box;
+            color: white;
           }
           body {
             font-family: sans-serif;
             display: flex;
             align-items: center;
-            background-color: rgba(232,233,239,1);
+            background-color: #212121;
             justify-content: center;
             min-height: 100vh;
           }
           
           .form {
-            background: white;
+            background: #303030;
             padding: 20px 15px;
             min-height: 250px;
             min-width: 350px;
@@ -47,9 +48,9 @@
             outline: none;
             padding: 15px 10px;
             margin: 30px;
-            border: solid 1px dodgerblue;
+            border: solid 1px white;
             background: none;
-            color: black;
+            color: white;
             width: 300px;
             transition: border-color 1s;
           }
@@ -59,7 +60,7 @@
             outline: none;
             padding: 15px 10px;
             margin: 30px;
-            border: solid 1px dodgerblue;
+            border: solid 1px white;
             background: none;
             color: black;
             width: 300px;
@@ -74,8 +75,9 @@
           
           .form button {
             padding: 10px;
-            color: white;
-            background-color:rgba(75, 95, 172, 1);
+            color: black;
+            font-weight: bold;
+            background-color:rgba(236, 236, 236, 0.83);
             border: none;
             width: 300px;
             margin-left: 30px;
@@ -83,7 +85,10 @@
             cursor: pointer;
           }
           .form button:hover {
-            background-color: rgb(108, 127, 201);
+            background-color: rgb(175, 175, 175);
+          }
+          ::placeholder{
+            color:  rgb(201, 201, 201);
           }
           
           .action {
@@ -160,7 +165,7 @@
             input{
               padding: 15px 10px;
               margin: 6px;
-              border: solid 1px dodgerblue;
+              border: solid 1px white;
               background: none;
               color: black;
               width: 260px;
@@ -200,7 +205,7 @@
             <input type="text" name="reg_username" id="reg_username" placeholder="Username" />
             <input type="email" name="reg_email" id="reg_email" placeholder="Email" />
             {% comment %} <label for="reg_profile_picture" class="label-profile-pic" ><i class="fa-solid fa-upload" style="padding-right: 5px;"></i>Profile Picure</label> {% endcomment %}
-            <input type="file" name="reg_profile_picture" id="reg_profile_picture" placeholder="Profile Picture" />
+            {% comment %} <input type="file" name="reg_profile_picture" id="reg_profile_picture" placeholder="Profile Picture" /> {% endcomment %}
             <input type="password" name="reg_password" id="reg_password" placeholder="Password" />
             <div class="log-reg">  
                 <button type="button" name="registration_btn" onclick="registrationBtn()">Register</button>
@@ -219,13 +224,11 @@
     const reg_username = document.getElementById("reg_username").value;
     const showMessageError = document.getElementById("showMessageError");
     const reg_email = document.getElementById("reg_email").value;
-    const reg_profile_picture = document.getElementById("reg_profile_picture").files[0];
     const reg_password = document.getElementById("reg_password").value;
     const formData = new FormData();
     
     formData.append("reg_username",reg_username);
     formData.append("reg_email",reg_email);
-    formData.append("reg_profile_picture",reg_profile_picture);
     formData.append("reg_password",reg_password);
     formData.append("csrfmiddlewaretoken","{{ csrf_token }}");
     
